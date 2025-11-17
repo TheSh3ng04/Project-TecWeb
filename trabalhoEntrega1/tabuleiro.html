@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TAB GAME</title>
+    <link rel="stylesheet" href="tabuleiro.css">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+
+    <!-- CONTAINER PRINCIPAL: LADO A LADO -->
+    <div class="game-container">
+
+        <!-- TABULEIRO À ESQUERDA -->
+        <div id="board"></div>
+
+        <!-- PAUS DE DADOS À DIREITA -->
+        <div class="dados-panel">
+            <div class="Paus-de-Dados">Paus de Dados</div>
+            <canvas id="stickCanvas" width="200" height="140"></canvas>
+            <div class="RollOutput" id="RollOutput"></div>
+            <button onclick="roll()" class="button">Roll</button>
+        </div>
+    </div>
+
+    <!-- TURNO ABAIXO DOS DOIS -->
+    <div id="turnIndicator">Current Turn: O</div>
+
+    <script src="tabuleiro.js"></script>
+</body>
+</html>

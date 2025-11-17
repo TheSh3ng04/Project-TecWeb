@@ -1,0 +1,190 @@
+body {
+    background: #000022;
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ========================================
+   CONTAINER PRINCIPAL
+   ======================================== */
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 32px;
+    margin: 2rem auto;
+    padding: 0 16px;
+    flex-wrap: wrap;
+    max-width: 1000px;
+}
+
+/* TABULEIRO (ESQUERDA) */
+#board {
+    display: grid;
+    gap: 1px;
+    padding: 12px;
+    background: rgba(20, 20, 40, 0.9);
+    border: 2px solid rgba(0, 200, 255, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
+    width: fit-content;
+}
+
+.square {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s ease;
+    user-select: none;
+}
+
+.light {
+    background-color: #f0d9b5;
+}
+
+.dark {
+    background-color: #b58863;
+}
+
+
+.square.selected {
+    box-shadow: 0 0 0 4px #00ffff inset !important;
+    background-color: #cceeff !important;
+}
+
+.square.move {
+    box-shadow: 0 0 0 4px #00ff00 inset !important;
+    background-color: #ccffcc !important;
+}
+
+.square.capture {
+    box-shadow: 0 0 0 4px #ff0066 inset !important;
+    background-color: #ffcccc !important;
+}
+
+.square.highlight {
+    box-shadow: 0 0 0 4px #ffff00 inset !important;
+    background-color: #ffffcc !important;
+}
+
+/* PAINEL DOS DADOS (DIREITA)*/
+.dados-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    min-width: 220px;
+}
+
+.Paus-de-Dados {
+    background: rgba(0, 0, 34, 0.8);
+    border: 2px solid #00ccff;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    color: #00ffff;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 0 0 6px #00ccff;
+    width: 100%;
+}
+
+/* Canvas dos paus */
+#stickCanvas {
+    display: block;
+    background: rgba(0, 200, 255, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 200, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 200, 255, 0.2);
+}
+
+/* Resultado do roll */
+.RollOutput {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ffff;
+    text-shadow: 0 0 8px #00ccff;
+    min-height: 36px;
+    text-align: center;
+}
+
+/* Botão de rolar */
+.button {
+    background: linear-gradient(45deg, rgba(0, 200, 255, 0.8), rgba(200, 0, 200, 0.8));
+    background-size: 200%;
+    border: none;
+    border-radius: 12px;
+    padding: 20px 100px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.4);
+}
+
+.button:hover {
+    background-position: 100%;
+    box-shadow: 0 0 12px rgba(200, 0, 200, 0.8);
+    animation: gradient 1.5s infinite;
+}
+
+@keyframes gradient {
+    0%   { background-position: 0%; }
+    50%  { background-position: 100%; }
+    100% { background-position: 0%; }
+}
+
+/* TURNO (ABAIXO) */
+#turnIndicator {
+    text-align: center;
+    margin: 24px 0;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #00ffff;
+    text-shadow: 0 0 8px #00ccff;
+    padding: 10px 24px;
+    background: rgba(0, 0, 34, 0.7);
+    border: 1px solid #00ccff;
+    border-radius: 12px;
+    display: inline-block;
+    min-width: 220px;
+    backdrop-filter: blur(4px);
+}
+
+/* ========================================
+   RESPONSIVO
+   ======================================== */
+@media (max-width: 768px) {
+    .game-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    #board {
+        order: 1;
+    }
+    
+    .dados-panel {
+        order: 2;
+    }
+    
+    .Throwing-dice {
+        width: 100%;
+        max-width: 260px;
+    }
+}
