@@ -131,8 +131,8 @@
 
         <!-- PAINÉIS LATERAIS -->
         <div id="Rules_panel">
-                    <strong>Rules</strong>
-                    <p>
+            <strong>Rules</strong>
+                <p>
                     <br>
                     Each player has n pieces. Your pieces will be disposal on the bottom row.
                     <br><br>
@@ -189,48 +189,80 @@
                     it is captured and removed from play.
                     <br><br>
                     The game ends when one player has captured all of the opponent's pieces.
-                    </p>
-                </div>
-        <div id="classifications" class="panel"><div class="conquests-wrap">
-                    <div class="conquests-controls">
-                    <input id="new-conquest-name" placeholder="Nova Conquista" />
-                    <button id="add-conquest">Adicionar Conquista</button>
-                    <input id="new-player-name" placeholder="Novo Jogador" />
-                    <button id="add-player">Adicionar Jogador</button>
-                    </div>
+                </p>
+        </div>
+        <div id="classifications" class="panel">
+            <div class="conquests-wrap"> <!-- 保留原有容器，继承CSS预设样式 -->
+                <!-- 模块标题与当前玩家提示（依赖CSS中h2、p的预设样式） -->
+                <h2>Classificações de Jogos</h2>
+                <p>
+                    Registro de jogos realizados, com destaque para o jogo com o menor número de jogadas. 
+                    Jogador atual: @<span id="saida_username"></span> <!-- 保留原有用户显示逻辑 -->
+                </p>
 
-                    <table class="conquests-table" id="conquestsTable" role="table" aria-label="Player Conquests">
+                <!-- 最佳游戏表格（完全复用原有表格类名，依赖CSS中conquests-table等预设样式） -->
+                <h3>Melhor Jogo (mínimo de jogadas)</h3>
+                <table class="conquests-table" id="bestGameTable" role="table" aria-label="Melhor Jogo">
                     <thead>
                         <tr>
-                        <th class="corner">Player \ Conquest</th>
-                        <th>Conquest A</th>
-                        <th>Conquest B</th>
-                        <th>Conquest C</th>
+                            <th class="corner">Melhor Jogo</th> <!-- 继承corner类的CSS样式 -->
+                            <th>Jogador1</th>
+                            <th>Jogador2</th>
+                            <th>N. de jogadas feitas</th>
+                            <th>Vencedor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 表格行与单元格：继承rowname、cell类的CSS样式 -->
+                        <tr>
+                            <td class="rowname">Jogo 15/11/2025</td>
+                            <td class="cell">@<span id="saida_username"></span></td>
+                            <td class="cell">@visitante01</td>
+                            <td class="cell">28</td>
+                            <td class="cell">@<span id="saida_username"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 所有游戏记录表格（同样依赖CSS预设样式） -->
+                <h3>Registro de Todos os Jogos</h3>
+                <table class="conquests-table" id="allGamesTable" role="table" aria-label="Registos de Jogos">
+                    <thead>
+                        <tr>
+                            <th class="corner">N.º do Jogo</th>
+                            <th>Jogador1</th>
+                            <th>Jogador2</th>
+                            <th>N. de jogadas feitas</th>
+                            <th>Vencedor</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                        <td class="rowname">@<span id="saida_username"></span></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
+                            <td class="rowname">JOG-251118-01</td>
+                            <td class="cell">@<span id="saida_username"></span></td>
+                            <td class="cell">@maria_p</td>
+                            <td class="cell">35</td>
+                            <td class="cell">@maria_p</td>
                         </tr>
                         <tr>
-                        <td class="rowname"></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
+                            <td class="rowname">JOG-251117-01</td>
+                            <td class="cell">@pedro_k</td>
+                            <td class="cell">@ana_m</td>
+                            <td class="cell">42</td>
+                            <td class="cell">@pedro_k</td>
                         </tr>
                         <tr>
-                        <td class="rowname"></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
-                        <td class="cell"></td>
+                            <td class="rowname">JOG-251115-01</td>
+                            <td class="cell">@<span id="saida_username"></span></td>
+                            <td class="cell">@visitante01</td>
+                            <td class="cell">28</td>
+                            <td class="cell">@<span id="saida_username"></span></td>
                         </tr>
                     </tbody>
-                    </table>
-                </div>
+                </table>
             </div>
+        </div>
+        </div>
     </div>
 
     <script src="game_scriptsV7.js"></script>
