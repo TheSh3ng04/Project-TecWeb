@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tâb</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="game_stylesV7.css">
+    <link rel="stylesheet" href="tabuleiro.css">
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+
+    <canvas id="fundo"></canvas>
+
+    <!-- === LOGIN === -->
+    <div class="pregame_panels" id="start">
+        <h1>Tâb</h1>
+        <h2>Log in</h2>
+        <form id="subscription">
+            <label for="uname">Username:</label>
+            <input type="text" id="uname" name="uname" placeholder="Username">
+            <label for="pw">Password:</label>
+            <input type="text" id="pw" name="pw" placeholder="Password">
+            <input class="button" type="submit" value="Submit">
+        </form>
+        <p id="to_sign_in">Does not have an account yet, SIGN IN.</p>
+    </div>
+
+    <!-- === SIGN IN === -->
+    <div class="pregame_panels" id="new_start" style="display: none;">
+        <h1>Tâb</h1>
+        <h2>Sign in</h2>
+        <form id="inscription">
+            <label for="uname">Username:</label>
+            <input type="text" id="uname" name="uname" placeholder="Username">
+            <label for="pw">Password:</label>
+            <input type="text" id="pw" name="pw" placeholder="Password">
+            <input class="button" type="submit" value="Submit">
+        </form>
+        <p id="to_log_in">Go back to LOG IN.</p>
+    </div>
+
+    <!-- === SETUP === -->
+    <div id="medium" style="display: none;">
+        <h1>Tâb</h1>
+        <h2>Setup</h2>
+        <form>
+            <fieldset>
+                <legend>Size:</legend>
+                <input type="radio" id="size-small" name="size" value="7" checked><label for="size-small">Small</label>
+                <input type="radio" id="size-medium" name="size" value="9"><label for="size-medium">Medium</label>
+                <input type="radio" id="size-large" name="size" value="11"><label for="size-large">Large</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Second Player:</legend>
+                <input type="radio" id="human" name="sp" value="0" checked><label for="human">Human</label>
+                <input type="radio" id="IA" name="sp" value="1"><label for="IA">Bot</label>
+            </fieldset>
+
+            <fieldset id="setup_secundario" style="display: none;">
+                <legend>Bot Difficulty:</legend>
+                <input type="radio" id="bd-soft" name="bd" value="0" checked><label for="bd-soft">Soft</label>
+                <input type="radio" id="bd-medium" name="bd" value="1"><label for="bd-medium">Medium</label>
+                <input type="radio" id="bd-hard" name="bd" value="2"><label for="bd-hard">Hard</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>First one to start:</legend>
+                <input type="radio" id="mps" name="fs" value="0" checked><label for="mps">Me</label>
+                <input type="radio" id="ops" name="fs" value="1"><label for="ops">Other</label>
+            </fieldset>
+
+            <input class="button" id="button_medium" type="button" value="Continuar">
+        </form>
+    </div>
+
+    <!-- === JOGO + BOX + SIDEBAR === -->
+    <div id="final" style="display: none; position: relative; width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
+        
+        <!-- BOX DO TABULEIRO -->
+        <div class="game-box">
+            <h1>Tâb</h1>
+            <iframe id="game-iframe" src="tabuleiro.html" frameborder="0"></iframe>
+        </div>
+
+        <!-- SIDEBAR (mantém o teu código original) -->
+        <div class="side_bar">
+            <i class="bx bx-menu" id="menu_button"></i>
+            <br><br>
+            <div class="user">
+                <i class="bxr bx-user user-img" aria-hidden="true"></i>
+                <div class="user-meta">
+                    <p class="user-handle"><strong>@<span id="saida_username">jogador</span></strong></p>
+                    <p class="user-role">Admin</p>
+                </div>
+            </div>
+            <ul>
+                <li>
+                    <button class="side-btn" id="rule_button" type="button">
+                        <span class="icon-box"><i class='bxr bx-book-bookmark' style='color:#000'></i></span>
+                        <span class="nav-item">Rules</span>
+                    </button>
+                    <span class="tool-tip">Rules</span>
+                </li>
+                <li>
+                    <button class="side-btn" id="classification_button">
+                        <span class="icon-box"><i class='bxr bx-trophy' style='color:#000'></i></span>
+                        <span class="nav-item">Classifications</span>
+                    </button>
+                    <span class="tool-tip">Classifications</span>
+                </li>
+                <li>
+                    <button class="side-btn" id="new_game_button" type="button">
+                        <span class="icon-box"><i class="bx bx-cog" style='color:#000'></i></span>
+                        <span class="nav-item">Settings</span>
+                    </button>
+                    <span class="tool-tip">Settings</span>
+                </li>
+                <li>
+                    <button class="side-btn" id="finish_game_buttom" type="button">
+                        <span class="icon-box"><i class='bx bx-arrow-out-left-square-half' style='color:#000'></i></span>
+                        <span class="nav-item">Logout</span>
+                    </button>
+                    <span class="tool-tip">Logout</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- PAINÉIS LATERAIS -->
+        <div id="Rules_panel">
+                    <strong>Rules</strong>
+                    <p>
+                    <br>
+                    Each player has n pieces. Your pieces will be disposal on the bottom row.
+                    <br><br>
+                    Dice roll: The value of the dice is obtained by the number of sticks
+                    with the light side facing up.
+                    <br><br>
+                    <table>
+                        <tr>
+                            <th class="dice_table">Name</th>
+                            <th class="dice_table">Light up</th>
+                            <th class="dice_table">Value</th>
+                            <th class="dice_table">Extra trow</th>
+                        </tr>
+                        <tr>
+                            <td class="dice_table">Sitteh</td>
+                            <td class="dice_table">0</td>
+                            <td class="dice_table">6</td>
+                            <td class="dice_table">&#10004</td>
+                        </tr>
+                        <tr>
+                            <td class="dice_table">Tâb</td>
+                            <td class="dice_table">1</td>
+                            <td class="dice_table">1</td>
+                            <td class="dice_table">&#10004</td>
+                        </tr>
+                        <tr>
+                            <td class="dice_table">Itneyn</td>
+                            <td class="dice_table">2</td>
+                            <td class="dice_table">2</td>
+                            <td class="dice_table">-</td>
+                        </tr>
+                        <tr>
+                            <td class="dice_table">Teláteh</td>
+                            <td class="dice_table">3</td>
+                            <td class="dice_table">3</td>
+                            <td class="dice_table">-</td>
+                        </tr>
+                        <tr>
+                            <td class="dice_table">Arba'ah</td>
+                            <td class="dice_table">4</td>
+                            <td class="dice_table">4</td>
+                            <td class="dice_table">&#10004</td>
+                        </tr>
+                    </table>
+                    <br><br>
+                    A piece's first move must be a roll of 1 (Tâb). 
+                    <br><br>
+                    Pieces move in the direction shown on the board. A piece may enter the top
+                    row only once, and only if all of the player's pieces have left the starting row.
+                    A piece may not return to the starting row.
+                    <br><br>
+                    A piece cannot move to a square occupied by another piece of the same player.
+                    If an opponent's piece occupies the destination square, 
+                    it is captured and removed from play.
+                    <br><br>
+                    The game ends when one player has captured all of the opponent's pieces.
+                    </p>
+                </div>
+        <div id="classifications" class="panel"><div class="conquests-wrap">
+                    <div class="conquests-controls">
+                    <input id="new-conquest-name" placeholder="Nova Conquista" />
+                    <button id="add-conquest">Adicionar Conquista</button>
+                    <input id="new-player-name" placeholder="Novo Jogador" />
+                    <button id="add-player">Adicionar Jogador</button>
+                    </div>
+
+                    <table class="conquests-table" id="conquestsTable" role="table" aria-label="Player Conquests">
+                    <thead>
+                        <tr>
+                        <th class="corner">Player \ Conquest</th>
+                        <th>Conquest A</th>
+                        <th>Conquest B</th>
+                        <th>Conquest C</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        <td class="rowname">@<span id="saida_username"></span></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        </tr>
+                        <tr>
+                        <td class="rowname"></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        </tr>
+                        <tr>
+                        <td class="rowname"></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        <td class="cell"></td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+    </div>
+
+    <script src="game_scriptsV7.js"></script>
+</body>
+</html>
