@@ -114,23 +114,23 @@ body {
     font-weight: bold;
     color: #00ffff;
     text-shadow: 0 0 8px #00ccff;
-    min-height: 3px;
+    min-height: 36px;
     text-align: center;
 }
 
-/* BotÃ£o de rolar */
+/* Botão de rolar */
 .button {
     background: linear-gradient(45deg, rgba(0, 200, 255, 0.8), rgba(200, 0, 200, 0.8));
     background-size: 200%;
     border: none;
     border-radius: 12px;
-    padding: 10px 100px;
+    padding: 15px 100px;
     color: #fff;
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: px;
+    margin-top: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
     box-shadow: 0 0 8px rgba(0, 200, 255, 0.4);
@@ -151,12 +151,12 @@ body {
 /* TURNO (ABAIXO) */
 #turnIndicator {
     text-align: center;
-    margin: 2px 0;
-    font-size: 1.4rem;
+    margin: 24px 0;
+    font-size: 2.5rem;
     font-weight: bold;
     color: #00ffff;
     text-shadow: 0 0 8px #00ccff;
-    padding: 10px 24px;
+    padding: 25px 77px;
     background: rgba(0, 0, 34, 0.7);
     border: 1px solid #00ccff;
     border-radius: 12px;
