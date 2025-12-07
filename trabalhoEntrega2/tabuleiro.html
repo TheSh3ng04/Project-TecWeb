@@ -1,36 +1,28 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>TAB GAME</title>
-    <link rel="stylesheet" href="tabuleiro.css">
-    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8">
+        <title> TAB GAME </title>
+        <link rel="stylesheet" href="tabuleiro.css">
+    </head>
 
-    <!-- CONTAINER PRINCIPAL: LADO A LADO -->
-    <div class="game-container">
-
-        <!-- TABULEIRO À ESQUERDA -->
-        <div>
-            <div id="board"></div>
-            <div id="turnIndicator">Current Turn: O</div>            
-        </div>
-
-        <!-- PAUS DE DADOS À DIREITA -->
-        <div class="dados-panel">
-            <div class="Paus-de-Dados">Paus de Dados</div>
-            <canvas id="stickCanvas" width="200" height="140"></canvas>
-            <div class="RollOutput" id="RollOutput"></div>
-            <button onclick="roll()" class="button">Roll</button>
-            <button id="passButton" class="button">Pass</button>
+    <body>
+        <div class="game-container">
+            <div>   <!--Parte Esquerda-->
+                <div id="board"></div>
+                <div id="turnIndicator">Current Turn: O</div>
             
+            </div>  <!--Parte direita-->
+            <div class="dados-panel">
+                <div class="Paus-de-Dados"> Paus de Dados</div>
+                <canvas id="stickCanvas" width="200" height="140"></canvas>
+                <div class="RollOutput" id="RollOutput"></div>
+                <button onclick="roll()"class="button"> Roll </button>
+                <div id="PassTurn"></div>
+                <button onclick="passTurn()" class="button"> Pass </button>
+            </div>
         </div>
-    </div>
 
-    <!-- TURNO ABAIXO DOS DOIS -->
-
-
-    <script src="tabuleiro.js"></script>
-</body>
+        <script src="tabuleiro.js"></script>
+    </body>
 </html>

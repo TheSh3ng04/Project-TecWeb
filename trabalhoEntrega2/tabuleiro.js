@@ -1,4 +1,3 @@
-// game logic
 class Piece {
     constructor(player) {
         this.player = player;
@@ -21,8 +20,8 @@ class Tab {
         this.cols = cols;
         this.rows = 4; 
         this.board = this.generate_board(cols);
-        this.X_row_empty = true;
-        this.O_row_empty = true;
+        this.X_row_empty = false;
+        this.O_row_empty = false;
         this.last_piece_moved = null;
         this.x_piece_count = cols;
         this.o_piece_count = cols;
@@ -83,113 +82,96 @@ class Tab {
     }
 
 
-
     is_back_row_clear(p_row) {
-        if (p_row === 0) {
-            for (let i = 0; i < this.cols; i++) {
-                if (this.board[p_row][i].symbol === 'O') {
-                    this.O_row_empty = false
-                    return;
-                } 
-            }
-            this.O_row_empty = true
-        }
+        const isTopRow = p_row === 0;
+        const isBottomRow = p_row === this.rows - 1;
+        if (!isTopRow && !isBottomRow) return;
 
-        if (p_row === 3) {
-             for (let i = 0; i < this.cols; i++) {
-                if (this.board[p_row][i].symbol === 'X') {
-                    this.X_row_empty = false
-                    return;
-                }
-            }
-            this.X_row_empty = true
-        }  
+        const targetSymbol = isTopRow ? 'O' : 'X';
+        const row = this.board[p_row];
+        const hasOwnPiece = row.some(cell => cell instanceof Piece && cell.symbol === targetSymbol);
+
+        if (isTopRow) this.O_row_empty = !hasOwnPiece;
+        if (isBottomRow) this.X_row_empty = !hasOwnPiece;
     }
     //selected_piece is a set of coordenates,
     get_piece_movement_horizontal_direction(p_row) {
         return (p_row % 2 === 0) ? -1 : 1;
     }
 
+    
     get_piece_movement_vertical_direction(selected_piece, p_end_col) {
         const [p_row, p_col] = selected_piece
         const piece = this.board[p_row][p_col]
-        let direction = 0          
+        let direction = 0
+        let canUp = false
+        let canDown = false
 
+        // refresh back-row state
         this.is_back_row_clear(0)
-        this.is_back_row_clear(3)
+        this.is_back_row_clear(this.rows - 1)
 
-        if (p_end_col === 0) {
-            if (p_row === 0) {
-                direction = 1          //top left corner, moves down
-            }
-            else if (p_row === 2) {
-                if ((piece.symbol === 'O' && (!this.X_row_empty || piece.entered_opponent_row)) || (piece.symbol === "X")){
-                    direction = -1
+        const atLeft = p_end_col === 0
+        const atRight = p_end_col === this.cols - 1
+        const isO = piece.symbol === 'O'
+        const atTop = p_row === 0
+        const atBottom = p_row === this.rows - 1
+
+        if (atLeft) {
+            if (atTop) canDown = true
+            if (p_row === 2) {
+                if (isO) {
+                    const bothOpen = this.X_row_empty && !piece.entered_opponent_row
+                    canUp = true
+                    if (bothOpen) canDown = true
+                } else {
+                    canUp = true
                 }
-                if (piece.symbol === 'O' && !piece.entered_opponent_row && this.X_row_empty) { 
-                    direction = 0
+            }
+        }
+
+        if (atRight) {
+            if (atBottom) canUp = true
+            if (p_row === 1) {
+                if (!isO) {
+                    const bothOpen = this.O_row_empty && !piece.entered_opponent_row
+                    canDown = true
+                    if (bothOpen) canUp = true
+                } else {
+                    canDown = true
                 }
             }
         }
-        else if (p_end_col === this.cols - 1) {
-            if (p_row === 3) {
-                direction = -1        // bottom right corner, move up
-            }
-            else if (p_row === 1) {
-                if ((piece.symbol === 'X' && (!this.O_row_empty || piece.entered_opponent_row)) || (piece.symbol === "O")){
-                    direction = 1
-                }
-                if (piece.symbol === "X" && !piece.entered_opponent_row && this.O_row_empty) {
-                    direction = 0    
-                }
-                
-            }
-        }
+
+        if (canUp && canDown) return 0
+        if (canUp) return -1
+        if (canDown) return 1
+
         return direction
     }
  
     // checks if path is blocked given starting location and ending location column
     is_path_blocked(selected_piece, piece_end_col) {
-        
         const [p_row, p_col] = selected_piece;
         if (p_row === -1 || p_col === -1) return true;
     
         const h_direction = this.get_piece_movement_horizontal_direction(p_row);
-        let remaining_moves = this.get_piece_remaining_move(selected_piece, piece_end_col);
+        const remaining_moves = this.get_piece_remaining_move(selected_piece, piece_end_col);
         const piece = this.board[p_row][p_col];
         const range = Math.abs(p_col - piece_end_col);
     
         for (let i = 1; i <= range; i++) {
             const next_col = p_col + i * h_direction;
-    
-            // Prevent out-of-bounds
             if (next_col < 0 || next_col >= this.cols) break;
     
             const cell = this.board[p_row][next_col];
     
-            // For intermediate squares
             if (i < range) {
-                if (cell instanceof Piece && cell.symbol !== piece.symbol) {
-                    // Can't jump over an opponent piece
-                    return true;
-                }
-            } 
-            // For the final square
-            else if (i === range) {
-                if (cell === ' ') {
-                    return false; // legal empty landing
-                }
-                if (cell instanceof Piece && cell.symbol === piece.symbol)
-                    if  (remaining_moves >= 1) {
-                        return false; // edgecase, blocked by ally however it can still move vertically
-                    } else {
-                        return true; //blocked by ally
-                    }
-                
-                if (cell instanceof Piece && cell.symbol !== piece.symbol) {
-                    // capture allowed!
-                    return false;
-                }
+                if (cell instanceof Piece && cell.symbol !== piece.symbol) return true; // cannot jump
+            } else {
+                if (cell === ' ') return false; // empty landing
+                if (cell instanceof Piece && cell.symbol === piece.symbol) return remaining_moves <= 0; // blocked only if no vertical moves left
+                if (cell instanceof Piece && cell.symbol !== piece.symbol) return false; // capture allowed ← THIS LINE WAS MISSING
             }
         }
         return false;
@@ -200,127 +182,106 @@ class Tab {
         const [p_row, p_col] = selected_piece;
         const h_direction = this.get_piece_movement_horizontal_direction(p_row);
         const final_col = p_col + value * h_direction;
-        return (final_col < 0 || final_col >= this.cols) 
+        return final_col < 0 || final_col >= this.cols 
     }
 
     // calculates remaining moves after a piece hits a border
     get_piece_remaining_move(selected_piece, value) {
-
-        if (this.is_piece_OFB(selected_piece, value)) {
-            const [p_row, p_col] = selected_piece;
-            const h_direction = this.get_piece_movement_horizontal_direction(p_row);
-            let distance_to_border = 0;
-
-            if (h_direction === 1) { // Moving Right
-                distance_to_border = this.cols - 1 - p_col;
-            } else { // h_direction === -1 (Moving Left)
-                distance_to_border = p_col; // Distance to column 0
-            }
-            let remaining_moves = value - distance_to_border;
-            return remaining_moves;
-        }
-        return 0;
+        if (!this.is_piece_OFB(selected_piece, value)) return 0;
+        const [p_row, p_col] = selected_piece;
+        const h_direction = this.get_piece_movement_horizontal_direction(p_row);
+        const distance_to_border = h_direction === 1 ? (this.cols - 1 - p_col) : p_col;
+        return value - distance_to_border;
     }
 
     // calculates the ending location of piece col
     get_piece_end_col(selected_piece, value) {
         const [p_row, p_col] = selected_piece;
-        if (value === 0) {
-            return p_col;
-        }      
+        if (value === 0) return p_col;
         const h_direction = this.get_piece_movement_horizontal_direction(p_row);
         let end_location = p_col + (h_direction * value);
+        if (this.is_piece_OFB(selected_piece, value)) end_location = h_direction === 1 ? this.cols - 1 : 0;
+        return this.is_path_blocked(selected_piece, end_location) ? -1 : end_location;
+    }
 
-        if (this.is_piece_OFB(selected_piece, value)) {
-            if (h_direction === 1) { // Moving Right
-                end_location = this.cols - 1;
-            } else { // h_direction === -1 (Moving Left)
-                end_location = 0
+    // Check if horizontal path to border is clear (no opponent pieces blocking)
+    is_horizontal_path_clear_to_border(selected_piece, border_col) {
+        const [p_row, p_col] = selected_piece;
+        const piece = this.board[p_row][p_col];
+        const h_dir = this.get_piece_movement_horizontal_direction(p_row);
+        const range = Math.abs(p_col - border_col);
+        
+        // Check all cells in the path (including the border)
+        for (let i = 1; i <= range; i++) {
+            const next_col = p_col + i * h_dir;
+            if (next_col < 0 || next_col >= this.cols) break;
+            
+            const cell = this.board[p_row][next_col];
+            // If there's an opponent piece anywhere in the path, the path is blocked
+            if (cell instanceof Piece && cell.symbol !== piece.symbol) {
+                return false;
             }
         }
-        if (!this.is_path_blocked(selected_piece, end_location)){
-            return end_location;
-        }
-
-        return -1;
+        return true;
     }
 
     piece_lane_switch(selected_piece, value) {      // returns row, alt row, end col, remaining moves, 
         const [p_row, p_col] = selected_piece;
-    
-        // Only applies when out-of-bounds horizontally
-        if (!this.is_piece_OFB(selected_piece, value)) {
-            return [-1, -1, -1, -1];
-        }
-    
+        if (!this.is_piece_OFB(selected_piece, value)) return [-1, -1, -1, -1];
+
         const piece = this.board[p_row][p_col];
         const remaining_moves = this.get_piece_remaining_move(selected_piece, value);
         const h_dir = this.get_piece_movement_horizontal_direction(p_row);
         const end_col = (h_dir === 1) ? this.cols - 1 : 0; // actual border column
+        
+        // Check if horizontal path to border is clear - if blocked by opponent, can't move vertically
+        if (!this.is_horizontal_path_clear_to_border(selected_piece, end_col)) {
+            return [-1, -1, -1, -1];
+        }
+        
         const direction = this.get_piece_movement_vertical_direction(selected_piece, end_col);
-    
-        // Ensure we have a valid vertical move
+
         if (direction !== 0) {
             const new_row = p_row + direction;
             if (new_row < 0 || new_row >= this.rows) return [-1, -1, -1, -1];
-    
             const target = this.board[new_row][end_col];
-    
-            // Allowed if empty, or if capturing opponent and it’s the last move
-            if (
+            const canMove =
                 target === " " ||
                 (target instanceof Piece && target.symbol !== piece.symbol && remaining_moves === 1) ||
-                (target instanceof Piece && target.symbol === piece.symbol && remaining_moves >= 2)
-            ) {
-                return [new_row, -1, end_col, remaining_moves - 1];
-            }
-    
-            // Blocked by ally
-            return [-1, -1, -1, -1];
+                (target instanceof Piece && target.symbol === piece.symbol && remaining_moves >= 2);
+            return canMove ? [new_row, -1, end_col, remaining_moves - 1] : [-1, -1, -1, -1];
         }
-        else {
+
         // If direction is 0, both vertical options possible
         const up = (p_row - 1 >= 0) ? p_row - 1 : -1;
         const down = (p_row + 1 < this.rows) ? p_row + 1 : -1;        
         return [down, up, end_col, remaining_moves - 1];
-        }
     }
-    
     
     
     piece_end_location(selected_piece, value) { // returns row, col, alt row, alt col
         if (this.is_piece_OFB(selected_piece, value)) {
             const [p_new_row, p_new_row_alt, p_new_col, remaining_moves] = this.piece_lane_switch(selected_piece, value);
-
-            if (remaining_moves === -1) return [-1, -1, -1, -1];    //illegal move
-
-            const new_piece = [p_new_row, p_new_col];
-            let final_col = this.get_piece_end_col(new_piece, remaining_moves);
-
+            if (p_new_row === -1 && p_new_row_alt === -1) return [-1, -1, -1, -1];
+            const final_col = this.get_piece_end_col([p_new_row, p_new_col], remaining_moves);
             if (p_new_row_alt !== -1) {
-                return [p_new_row, final_col, p_new_row_alt, p_new_col]
+                const final_col_alt = this.get_piece_end_col([p_new_row_alt, p_new_col], remaining_moves);
+                return [p_new_row, final_col, p_new_row_alt, final_col_alt]
             }
-
             return [p_new_row, final_col, -1, -1]
         }
         const final_col = this.get_piece_end_col(selected_piece, value);
-        const [p_row, p_col] = selected_piece;
+        const [p_row] = selected_piece;
         return [p_row, final_col, -1, -1];
     }   
     
-  
     is_move_legal(selected_piece, value) {
-        const [original_p_rol, original_p_col] = selected_piece;
-        const piece = this.board[original_p_rol][original_p_col]
+        const [original_p_row, original_p_col] = selected_piece;
+        const piece = this.board[original_p_row][original_p_col]
         if (!piece.hasMoved && value !== 1) return false;
         const [p_row, p_col, p_row_alt, p_col_alt] = this.piece_end_location(selected_piece, value)
-        if (p_row < 0 || p_col < 0) return false;
         if (p_row < 0 && p_col < 0 && p_row_alt < 0 && p_col_alt < 0) return false;
-        const target = this.board[p_row][p_col];
-        if (this.board[p_row][p_col] instanceof Piece && target.symbol === piece.symbol) return false;
- 
-        
-        return true;
+        return (p_row >= 0 && p_col >= 0) || (p_row_alt >= 0 && p_col_alt >= 0);
     }
 
     get_possible_moves(symbol, value) {
@@ -330,11 +291,23 @@ class Tab {
                 const cell = this.board[row][col];
                 if (cell instanceof Piece && cell.symbol === symbol) {
                     if (this.is_move_legal([row, col], value)) {
-                        const end_location = this.piece_end_location([row, col], value);
-                        if (end_location[2] !== -1 && end_location[3] !== -1) {
-                            possibleMoves.push([[row, col], [end_location[2], end_location[3]]])
+                        const [end_row, end_col, alt_row, alt_col] = this.piece_end_location([row, col], value);
+                        
+                        // Only add primary move if valid AND not blocked by ally
+                        if (end_row >= 0 && end_col >= 0) {
+                            const target = this.board[end_row][end_col];
+                            if (!(target instanceof Piece && target.symbol === symbol)) {
+                                possibleMoves.push([[row, col], [end_row, end_col]]);
+                            }
                         }
-                        possibleMoves.push([[row, col], [end_location[0], end_location[1]]]);
+                        
+                        // Only add alt move if valid AND not blocked by ally
+                        if (alt_row >= 0 && alt_col >= 0) {
+                            const target_alt = this.board[alt_row][alt_col];
+                            if (!(target_alt instanceof Piece && target_alt.symbol === symbol)) {
+                                possibleMoves.push([[row, col], [alt_row, alt_col]]);
+                            }
+                        }
                     }
                 }
             }
@@ -349,9 +322,8 @@ class Tab {
         const piece = this.board[p_row][p_col];
         const target = this.board[new_p_row][new_p_col];
     
-        // Capture logic
+        // Capture opponent piece
         if (target instanceof Piece && target.symbol !== piece.symbol) {
-            // Remove captured piece and update counts
             this.board[new_p_row][new_p_col] = " ";
             if (target.symbol === "X") {
                 this.x_piece_count--;
@@ -359,18 +331,22 @@ class Tab {
                 this.o_piece_count--;
             }
         }
+        // If ally piece is there, this shouldn't happen - but if it does, don't overwrite
+        else if (target instanceof Piece && target.symbol === piece.symbol) {
+            console.error("Trying to move to square occupied by ally piece!", selected_piece, end_location);
+            return; // Don't make the move
+        }
     
         // Move the piece
         this.board[p_row][p_col] = " ";
         this.board[new_p_row][new_p_col] = piece;
     
-        // Update piece state if it enters opponent's row
+        // Update piece state
         piece.hasMoved = true;
-        if (piece.symbol === "O" && new_p_row === 3) piece.entered_opponent_row = true;
+        if (piece.symbol === "O" && new_p_row === this.rows - 1) piece.entered_opponent_row = true;
         if (piece.symbol === "X" && new_p_row === 0) piece.entered_opponent_row = true;
-        //is_game_won();
-
-        this.last_piece_moved = [p_row, p_col, new_p_row, new_p_col]
+    
+        this.last_piece_moved = [p_row, p_col, new_p_row, new_p_col];
     }
     
     get_winner() {
@@ -394,7 +370,11 @@ class Tab {
     }
 }
 
-class MiniMax {
+
+
+
+
+class AI {
     constructor(board, maximizingPlayer, parent = null, move = null) {
         this.board = board;
         this.maximizingPlayer = maximizingPlayer; // boolean: true for AI, false for opponent
@@ -437,71 +417,237 @@ class MiniMax {
         return score;
     }
 
-    minimax(depth, alpha, beta, maximizingSymbol, value, rootSymbol) {
-        if (depth === 0 || this.board.is_game_won()) {
-            return [this.evaluate(rootSymbol), this.board];
-        }
-    
-        const currentSymbol = maximizingSymbol;
-        let opponent = maximizingSymbol === "X" ? "O" : "X";
-        const possibleMoves = this.board.get_possible_moves(currentSymbol, value);
-        
-        console.log("POSSIBLE MOVES", possibleMoves)
+    // Evaluate an arbitrary board without mutating this instance
+    evaluate_on(board, maximizingPlayer) {
+        const original = this.board;
+        this.board = board;
+        const score = this.evaluate(maximizingPlayer);
+        this.board = original;
+        return score;
+    }
 
-        // Determine if we're maximizing for the root player
-        const isMaximizing = maximizingSymbol === rootSymbol;
-        let bestEval = isMaximizing ? -Infinity : Infinity;
+    // Depth-1 greedy selection using the evaluate function
+    pick_best_move(maximizingSymbol, value) {
+        const possibleMoves = this.board.get_possible_moves(maximizingSymbol, value);
+        console.log(`AI rolled ${rolledValue}, possible moves:`, possibleMoves);
+        let bestEval = -Infinity;
         let bestBoard = this.board;
-    
         for (let move of possibleMoves) {
             const [start_row, start_col] = move[0];
             const [end_row, end_col] = move[1];
             const newBoard = this.board.copy_board();
             newBoard.move_piece([start_row, start_col], [end_row, end_col]);
-            console.log("NEW BOARD", newBoard)
-            const child = new MiniMax(newBoard, opponent, this, move);
-            console.log("CHILD CALL")
-            const result = child.minimax(depth - 1, alpha, beta, opponent, value, rootSymbol);
-            console.log("RESULT BEFORE", result)
-            console.log("BEST EVAL BEFORE", bestEval)
-            
-            const evalScore = result[0];
-            
-            if (isMaximizing) {
-                if (evalScore > bestEval) {
-                    bestEval = evalScore;
-                    bestBoard = newBoard;
-                }
-                alpha = Math.max(alpha, evalScore);
-            } else {
-                if (evalScore < bestEval) {
-                    bestEval = evalScore;
-                    bestBoard = newBoard;
-                }
-                beta = Math.min(beta, evalScore);
+            const evalScore = this.evaluate_on(newBoard, maximizingSymbol);
+            if (evalScore > bestEval) {
+                bestEval = evalScore;
+                bestBoard = newBoard;
             }
-            
-            console.log("BEST EVAL AFTER", bestEval)
-
-            if (beta <= alpha) break;
+            console.log(evalScore)
         }
-        console.log("HELLO", bestBoard.last_piece_moved, "row col new row new col")
-        console.table("MINIMAX", bestBoard.readable_board());
-
         return [bestEval, bestBoard];
     }
     
 
-    minimaxRun(maximizingSymbol, value, maxDepth = 3) {
-        // assuming this.maximizingPlayer starts as true for AI
-        console.log("Initializing minimax")
-        return this.minimax(maxDepth, -Infinity, Infinity, maximizingSymbol, value, maximizingSymbol);
+    Run(maximizingSymbol, value) {
+        // One-ply (depth-1) evaluation: choose move that maximizes immediate eval
+        return this.pick_best_move(maximizingSymbol, value);
     }
 }
 
 
 
-// STICKS LOGIC dont touch kisses xoxo //
+//Event listener, click logic
+
+// === CLICK + MOVEMENT LOGIC ===
+
+function clearHighlights() {
+    document.querySelectorAll(".square").forEach(sq => {
+        sq.classList.remove("selected", "capture", "move");
+    });
+}
+
+function highlightSelection(row, col) {
+    const selector = `.square[data-row='${row}'][data-col='${col}']`;
+    const sq = document.querySelector(selector);
+    if (sq) sq.classList.add("selected");
+}
+
+function highlightDestinations(selected, value) {
+    clearHighlights();
+    const [r, c] = selected;
+    const piece = playableBoard.board[r][c];
+
+    // highlight selected piece
+    highlightSelection(r, c);
+
+    // if no roll, don't highlight destinations
+    if (value === 0) return;
+
+    const [endRow, endCol, altRow, altCol] = playableBoard.piece_end_location(selected, value);
+    const destinations = [[endRow, endCol], [altRow, altCol]];
+
+    destinations.forEach(([row, col]) => {
+        if (row === -1 || col === -1) return;
+        const sq = document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+        if (!sq) return;
+
+        const cell = playableBoard.board[row][col];
+        if (cell === " ") {
+            sq.classList.add("move");
+        } else if (cell instanceof Piece && cell.symbol !== piece.symbol) {
+            sq.classList.add("capture");
+        }
+    });
+}
+
+// --- STATE ---
+// --- TURN SYSTEM ---
+
+let rolledValue = 0;
+let selectedPiece = null;
+let playerListenerAttached = false;
+const boardEl = document.getElementById("board");
+
+function enablePlayerInput() {
+    if (!playerListenerAttached && boardEl) {
+        boardEl.addEventListener("click", handlePlayerClick);
+        playerListenerAttached = true;
+    }
+}
+
+function disablePlayerInput() {
+    if (playerListenerAttached && boardEl) {
+        boardEl.removeEventListener("click", handlePlayerClick);
+        playerListenerAttached = false;
+    }
+}
+
+// --- CLICK HANDLER ---
+function handlePlayerClick(e) {
+    const square = e.target;
+    if (!square.classList.contains("square")) return false;
+
+    const row = parseInt(square.dataset.row);
+    const col = parseInt(square.dataset.col);
+    const cell = playableBoard.board[row][col];
+
+    // Prevent selecting opponent pieces when no piece is selected
+    if (!selectedPiece) {
+        // Must roll first before any selection
+        if (!Number.isInteger(rolledValue) || rolledValue === 0) {
+            alert("You must roll first!");
+            return false;
+        }
+        
+        // Block clicking on opponent pieces for selection
+        if (cell instanceof Piece && cell.symbol !== currentPlayer) {
+            return false; // Silently ignore opponent piece clicks
+        }
+        
+        // Selecting a piece
+        if (!(cell instanceof Piece)) return false;
+        selectedPiece = [row, col];
+        highlightDestinations(selectedPiece, rolledValue);
+        return false;
+    }
+
+    // A piece is already selected - handle clicks on board squares
+    // If clicking on another of current player's pieces, reselect
+    if (cell instanceof Piece && cell.symbol === currentPlayer) {
+        selectedPiece = [row, col];
+        clearHighlights();
+        highlightDestinations(selectedPiece, rolledValue);
+        return false;
+    }
+
+    // --- Check if move is legal for the selected piece ---
+    if (!playableBoard.is_move_legal(selectedPiece, rolledValue)) {
+        alert("This piece cannot move with this roll!");
+        selectedPiece = null;
+        clearHighlights();            
+        refreshBoard();
+        return false;
+    }
+
+    // --- Get valid move destinations ---
+    const [endRow, endCol, altRow, altCol] = playableBoard.piece_end_location(selectedPiece, rolledValue);
+    const validMoves = [];
+    if (endRow !== -1 && endCol !== -1) validMoves.push([endRow, endCol]);
+    if (altRow !== -1 && altCol !== -1) validMoves.push([altRow, altCol]);
+
+    // Prevent clicking on opponent pieces that are not valid capture destinations
+    if (cell instanceof Piece && cell.symbol !== currentPlayer) {
+        const isValidDestination = validMoves.some(([r, c]) => r === row && c === col);
+        if (!isValidDestination) {
+            return false; // Not a valid capture destination, ignore click
+        }
+    }
+
+    // --- Check if clicked destination matches one of valid end locations ---
+    const isValid = validMoves.some(([r, c]) => r === row && c === col);
+    if (!isValid) {
+        // invalid destination click: keep selection so user can click a valid one
+        return false;
+    }
+
+    playableBoard.move_piece(selectedPiece, [row, col]);
+    selectedPiece = null;
+    refreshBoard();
+    clearHighlights();
+    updateSticks(0);
+    document.getElementById("RollOutput").textContent = "";
+    return true; // ✅ move completed successfully
+}
+
+
+// --- REFRESH BOARD ---
+function refreshBoard() {
+    const readable = playableBoard.readable_board();
+    const squares = document.querySelectorAll(".square");
+
+    squares.forEach((sq) => {
+        const r = parseInt(sq.dataset.row);
+        const c = parseInt(sq.dataset.col);
+        sq.textContent = readable[r][c];
+        sq.classList.remove("selected", "move", "capture");
+    });
+}
+
+function drawBoard() {
+    const board = document.getElementById("board");
+    board.innerHTML = ""; // clear any old board
+
+    const readable = playableBoard.readable_board();
+    const rows = readable.length;
+    const cols = readable[0].length;
+
+    // grid dynamic size
+    board.style.display = "grid";
+    board.style.gridTemplateRows = `repeat(${rows}, 60px)`;
+    board.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const square = document.createElement("div");
+            square.classList.add("square");
+
+            // alternating pattern
+            const isLight = (cols % 2 === 0)
+                ? (row + col) % 2 === 0
+                : (row + col) % 2 !== 0;
+
+            square.classList.add(isLight ? "light" : "dark");
+            square.dataset.row = row;
+            square.dataset.col = col;
+            square.textContent = readable[row][col];
+
+            board.appendChild(square);
+        }
+    }
+}
+
+// -- Sticks draw and rolls -- //
+
 function rng() {
     let value = Math.floor(Math.random() * 100)
     if (value <= 5) {
@@ -565,175 +711,32 @@ function updateSticks(value) {
 
 function updateText(value) {
     if (value == 1) {
-        return "Tâb 1" 
+        return "Tâb" 
     } else if (value == 2) {
-        return "Itneyn 2"
+        return "Itneyn"
     } else if (value == 3) {
-        return "Teláteh 3" 
+        return "Teláteh" 
     } else if (value == 4) {
-        return "Arba'ah 4" 
+        return "Arba'ah" 
     } else if (value == 6) {
-        return "Sitteh 6"
+        return "Sitteh"
     }
 }
 
 
-// Initial draw, else fica vazio
-updateSticks(0);
+// --- ROLL BUTTON HANDLER ---
+function roll() {
+    rolledValue = rng();
+    console.log(`${currentPlayer} rolled:`, rolledValue);
+    updateSticks(rolledValue);
 
-// END OF STICKS XOXO
-
-
-
-
-// === CLICK + MOVEMENT LOGIC ===
-
-// --- HIGHLIGHT HELPERS ---
-function clearHighlights() {
-    document.querySelectorAll(".square").forEach(sq => {
-        sq.classList.remove("selected", "capture", "move");
-    });
-}
-
-function highlightSelection(row, col) {
-    const selector = `.square[data-row='${row}'][data-col='${col}']`;
-    const sq = document.querySelector(selector);
-    if (sq) sq.classList.add("selected");
-}
-
-function highlightDestinations(selected, value) {
-    clearHighlights();
-    const [r, c] = selected;
-    const piece = playableBoard.board[r][c];
-
-    // highlight selected piece
-    highlightSelection(r, c);
-
-    // if no roll, don't highlight destinations
-    if (value === 0) return;
-
-    const [endRow, endCol, altRow, altCol] = playableBoard.piece_end_location(selected, value);
-    const destinations = [[endRow, endCol], [altRow, altCol]];
-
-    destinations.forEach(([row, col]) => {
-        if (row === -1 || col === -1) return;
-        const sq = document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
-        if (!sq) return;
-
-        const cell = playableBoard.board[row][col];
-        if (cell === " ") {
-            sq.classList.add("move");
-        } else if (cell instanceof Piece && cell.symbol !== piece.symbol) {
-            sq.classList.add("capture");
-        }
-    });
-}
-
-// --- STATE ---
-// --- TURN SYSTEM ---
-
-let rolledValue;
-let selectedPiece = null;
-
-// --- CLICK HANDLER ---
-function handlePlayerClick(e) {
-    const square = e.target;
-    if (!square.classList.contains("square")) return false;
-
-    const row = parseInt(square.dataset.row);
-    const col = parseInt(square.dataset.col);
-    const cell = playableBoard.board[row][col];
-
-    // Selecting a piece
-    if (!selectedPiece) {
-        if (cell instanceof Piece) {
-            if (cell.symbol !== currentPlayer) {
-                alert(`It's ${currentPlayer}'s turn!`);
-                return false;
-            }
-            selectedPiece = [row, col];
-            highlightDestinations(selectedPiece, rolledValue);
-        }
-        return false;
-    }
-
-    // Must roll first
-    if (rolledValue === 0) {
-        alert("You must roll first!");
-        selectedPiece = null;
-        clearHighlights();
-        refreshBoard();
-        return false;
-    }
-
-    // --- Check if move is legal ---
-    if (!playableBoard.is_move_legal(selectedPiece, rolledValue)) {
-        alert("This piece cannot move with this roll!");
-        selectedPiece = null;
-        clearHighlights();            
-        refreshBoard();
-        return false;
-    }
-
-    // --- Execute the move ---
-    const [endRow, endCol, altRow, altCol] = playableBoard.piece_end_location(selectedPiece, rolledValue);
-    const validMoves = [];
-    if (endRow !== -1 && endCol !== -1) validMoves.push([endRow, endCol]);
-    if (altRow !== -1 && altCol !== -1) validMoves.push([altRow, altCol]);
-
-    const isValid = validMoves.some(([r, c]) => r === row && c === col);
-    if (isValid) {
-        playableBoard.move_piece(selectedPiece, [row, col]);
-        if (checkWin()) {
-            selectedPiece = null;
-            rolledValue = 0;
-            updateSticks(0);
-            clearHighlights();
-            refreshBoard();
-            return; // Para o jogo - não alterna turno
-        }
-        selectedPiece = null;
-        refreshBoard();
-        clearHighlights();
-        updateSticks(0);
-        document.getElementById("RollOutput").textContent = "";
-        return true; // ✅ move completed successfully
-    } else {
-        selectedPiece = null;
-        clearHighlights();
-        refreshBoard();
-        return false;
+    // Show what the player rolled
+    const rollDiv = document.getElementById("RollOutput");
+    if (rollDiv) {
+        rollDiv.textContent = `${currentPlayer} rolled ${rolledValue}`;
+        updateTurnDisplay();
     }
 }
-
-
-function waitForPlayerMove() {
-    return new Promise((resolve) => {
-        function handleMove(e) {
-            const moveDone = handlePlayerClick(e);
-            if (moveDone) {
-                board.removeEventListener("click", handleMove);
-                resolve(); // resume game loop
-            }
-        }
-        board.addEventListener("click", handleMove);
-    });
-}
-
-
-// --- REFRESH BOARD ---
-function refreshBoard() {
-    const readable = playableBoard.readable_board();
-    const squares = document.querySelectorAll(".square");
-
-    squares.forEach((sq) => {
-        const r = parseInt(sq.dataset.row);
-        const c = parseInt(sq.dataset.col);
-        sq.textContent = readable[r][c];
-        sq.classList.remove("selected", "move", "capture");
-    });
-}
-
 
 // --- TURN SYSTEM ---
 function switchTurn() {
@@ -747,285 +750,70 @@ function updateTurnDisplay() {
     }
 }
 
-
-// --- ROLL BUTTON HANDLER ---
-
-let dice_rolled = false
-
-function roll() {       // Only returns Value
-    rolledValue = rng();
-    dice_rolled = true;
-    console.log(`${currentPlayer} rolled:`, rolledValue);
-    console.log(dice_rolled)
-    updateSticks(rolledValue);
-
-    // Show what the player rolled
-    const rollDiv = document.getElementById("RollOutput");
-    if (rollDiv) {
-        rollDiv.textContent = `${currentPlayer} rolled ${rolledValue}`;
-        updateTurnDisplay();
-    }
+//Pass turn
+function passTurn() {
+    switchTurn();
+    updateTurnDisplay();
+    updateSticks(0);
+    rolledValue = 0;
+    console.log("Turn passed")
 }
 
-function waitForRoll() {
+function waitForPass() {
     return new Promise(resolve => {
-        const rollBtn = document.querySelector(".button");
+        const rollBtn = document.querySelector(".Passing-Turn");
 
-        function onRollClick() {
-            rollBtn.removeEventListener("click", onRollClick);
+        function onPassClick() {
+            rollBtn.removeEventListener("click", onPassClick);
             resolve(rolledValue);
         }
 
-        rollBtn.addEventListener("click", onRollClick);
+        rollBtn.addEventListener("click", onPassClick);
     });
 }
 
 
-// === AI TURN LOGIC ===
-async function aiTurn(rolledValue, AISymbol) {
-
-    const root = new MiniMax(playableBoard, AISymbol);
-    const [eval, newBoard] = root.minimaxRun(AISymbol, rolledValue, 1);
-
-    console.table("AITURN", newBoard.readable_board());
-
-    playableBoard = newBoard;  // replace with AI's final board
-    refreshBoard();            // redraw UI
-}
-
-
-function drawBoard() {
-    const board = document.getElementById("board");
-    board.innerHTML = ""; // clear any old board
-
-    const readable = playableBoard.readable_board();
-    const rows = readable.length;
-    const cols = readable[0].length;
-
-    // grid dynamic size
-    board.style.display = "grid";
-    board.style.gridTemplateRows = `repeat(${rows}, 60px)`;
-    board.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
-
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const square = document.createElement("div");
-            square.classList.add("square");
-
-            // alternating pattern
-            const isLight = (cols % 2 === 0)
-                ? (row + col) % 2 === 0
-                : (row + col) % 2 !== 0;
-
-            square.classList.add(isLight ? "light" : "dark");
-            square.dataset.row = row;
-            square.dataset.col = col;
-            square.textContent = readable[row][col];
-
-            board.appendChild(square);
-        }
-    }
-}
-
-rolledValue = 0;
-
-
-function waitForPass() {
-    return new Promise((resolve) => {
-        const passBtn = document.getElementById("passButton");
-
-        function onPassClick() {
-            passBtn.removeEventListener("click", onPassClick);
-            resolve();
-        }
-
-        passBtn.addEventListener("click", onPassClick);
-    });
-}
-
-
-async function gameLoop() {
-    updateTurnDisplay();
-
+// -- main loop -- //
+async function gameloop() {
+// ROll -> Move -> Next 
+// Roll -> MOVE -> MOVE -> NEXT 
     while (!playableBoard.is_game_won()) {
-        console.log("Current Player:", currentPlayer);
-
         if (currentPlayer === playerSymbol) {
-            // Wait until player rolls
-            rolledValue = await waitForRoll();
-            const possible_moves = playableBoard.get_possible_moves(playerSymbol, rolledValue);
-            // If player has moves, wait for them to pick one
-            if (possible_moves.length > 0) {
-                await waitForPlayerMove();
-            } else {
-                console.log("No moves available, skipping turn.");
-                await waitForPass();
-                switchTurn();
-                updateTurnDisplay();
-            }
-            
+            await waitForPass()
         } else {
-            // 🧠 AI 
+            roll();
             await new Promise(resolve => setTimeout(resolve, 2000));        //time.sleep(10)
-            console.log("AI MOVE");
-            rolledValue = rng();
-            console.log(rolledValue)
-            drawBox();
-            drawSticks(rolledValue);
-            // Display "AI rolled x" instead of Arabic text
-            const rollDiv = document.getElementById("RollOutput");
-            if (rollDiv) {
-                rollDiv.textContent = `AI rolled ${rolledValue}`;
+            const root = new AI(playableBoard, AISymbol);
+            const [eval, newBoard] = root.Run(AISymbol, rolledValue);
+            playableBoard = newBoard;  // replace with AI's final board
+            refreshBoard();            // redraw U     
+
+            if (playableBoard.is_game_won()) break;
+
+            if ([1, 4, 6].includes(rolledValue)) {
+                console.log(`${currentPlayer} gets an extra turn!`);
+                continue; // stay on the same player
+            } else {
+                passTurn()
+                console.log("Turn switched to", currentPlayer);
             }
-            await aiTurn(rolledValue, AISymbol); // make sure this awaits AI movement
+
         }
-
-        // 🏁 Check for win
-        if (playableBoard.is_game_won()) break;
-
-        console.log("Rolled value:", rolledValue);
-
-        // 🔁 Handle extra turn logic
-        if ([1, 4, 6].includes(rolledValue)) {
-            console.log(`${currentPlayer} gets an extra turn!`);
-            continue; // stay on the same player
-        } else {
-            if (currentPlayer === playerSymbol) await waitForPass();
-            switchTurn();
-            console.log("Turn switched to", currentPlayer);
-        }
+        
     }
-
     alert(`${playableBoard.get_winner()} wins!`);
 }
 
 
-
-
-
-
-
-
-// --- INITIALIZE DISPLAY ---
 let playableBoard = new Tab(7);
-let playerSymbol = "X";  // Player Symbol
-let currentPlayer = "X";  // Starting player
-let AISymbol = playerSymbol === "X" ? "O" : "X";
+let currentPlayer = "X";
+const playerSymbol = "X";
+const AISymbol = "O";
 
-
-
-drawBoard();
-updateTurnDisplay();
-gameLoop();
-
-
-
-window.addEventListener('message', (e) => {
-  if (e.data.type === 'START_GAME') {
-    const cfg = e.data.config;
-
-    // Recria tabuleiro
-    playableBoard = new Tab(parseInt(cfg.size));
-    generateBoardDOM(cfg.size);
-
-    // Define quem começa
-    starterRoller = cfg.firstPlayer;
-    currentPlayer = cfg.firstPlayer;
-    starterDecided = true;
-    rolledValue = 1;
-
-    // Atualiza UI
-    refreshBoard();
-    updateTurnDisplay();
-    updateSticks(1);
-    document.getElementById("RollOutput").textContent = "Tâb (primeira jogada)";
-  }
-});
-
-
-// === VERIFICA VITÓRIA ===
-function checkWin() {
-  let oCount = 0;
-  let xCount = 0;
-  
-  // Conta TODAS as peças no tabuleiro
-  for (let r = 0; r < playableBoard.rows; r++) {
-    for (let c = 0; c < playableBoard.cols; c++) {
-      const cell = playableBoard.board[r][c];
-      if (cell instanceof Piece) {
-        if (cell.symbol === "O") oCount++;
-        if (cell.symbol === "X") xCount++;
-      }
-    }
-  }
-
-  // Se um jogador perdeu todas as peças
-  if (oCount === 0 || xCount === 0) {
-    const winner = oCount === 0 ? "X" : "O";
-    setTimeout(() => {
-      alert(`${winner} venceu o jogo!`);
-      window.parent.postMessage({ type: 'GAME_OVER', winner }, '*');
-    }, 300);
-    return true;
-  }
-  return false;
-}
-
-// === CHAMA checkWin APÓS CADA MOVIMENTO ===
-const originalRefreshBoard = refreshBoard;
-refreshBoard = function() {
-  originalRefreshBoard();
-  checkWin();
-};
-
-// === INICIALIZAÇÃO ===
-generateBoardDOM(playableBoard.cols);
-refreshBoard();
-updateTurnDisplay();
 updateSticks(0);
+updateTurnDisplay();
+drawBoard();
+enablePlayerInput();
+gameloop();
 
 
-
-
-
-
-
-
-
-
-
-
-
-/*
-// === TEST AI MOVE ===
-// (Make sure MiniMax and Tab are defined above this)
-function testAI() {
-    console.log("=== Testing MiniMax AI ===");
-    const testBoard = new Tab(4); // smaller board for clarity
-
-    console.table(testBoard.readable_board());
-    const ai = new MiniMax(testBoard, true);
-
-    // try a shallow search (depth 2)
-    try {
-        const result = ai.minimaxRun(AISymbol, 1, 1); // symbol "X", roll value 2, depth 2
-        console.log("AI result:", result);
-        console.table(result[1].readable_board());
-
-        if (result.move) {
-            const [start, end] = result.move;
-            console.log("AI decided to move from", start, "to", end);
-            testBoard.move_piece(start, end);
-        } else {
-            console.log("AI found no valid moves.");
-        }
-    } catch (err) {
-        console.error("MiniMax error:", err);
-    }
-
-
-}
-
-// call it after everything else is initialized
-testAI();
-*/
